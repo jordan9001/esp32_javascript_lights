@@ -1,12 +1,19 @@
 #include <Arduino.h>
 #include <pthread.h>
 #include <esp_pthread.h>
+
+#include "WS2812_ESP_RMT.h"
+
+/* NOTE, these duk files are not included in the repo, see https://github.com/svaarala/duktape */
 #include "duktape.h"
 
 #define PTHREAD_CREATE_DETACHED 0
+#define PIN                     22  // data pin for leds
+#define NUMPIXELS               150
 
-duk_context *dctx;
-
+// Globals
+duk_context *dctx; // global javascript context
+ESPRMTLED pixels = ESPRMTLED(NUMPIXELS, PIN, RMT_CHANNEL_0);
 
 void setup() {
   pthread_attr_t attr;
