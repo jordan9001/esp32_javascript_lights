@@ -1,6 +1,7 @@
 #include "networkinfo.h"
 #include "netserver.h"
 #include "site.h"
+#include "dbg.h"
 
 #include <pthread.h>
 #include <WebServer.h>
@@ -12,7 +13,7 @@ char* js1 = NULL;
 size_t js1_len = 0;
 char* js2 = NULL;
 size_t js2_len = 0;
-char* currentjs = "";
+char* currentjs = "delay(1500);";
 
 // static helpers
 static void* server_loop(void* arg);
@@ -29,23 +30,19 @@ int netserver_setup() {
   pthread_attr_t attr;
   pthread_t server_thread;
   
-  Serial.println("Server starting up");
+  dbg("Server starting up");
   // Start Wifi
   
   WiFi.config(ip, gateway, subnet, dns1, dns2);
   
   while (WiFi.begin(NET_SSID, NET_PASS) != WL_CONNECTED) {
-    Serial.printf("Connecting to Wifi %s %d...\n", NET_SSID, i);
+    dbgf("Connecting to Wifi %s %d...\n", NET_SSID, i);
     Serial.flush();
     delay(1000);
     i++;
   }
 
-  Serial.println(xPortGetCoreID());
-
-  Serial.printf("Connected to Wifi %s\n", NET_SSID);
-  Serial.print(WiFi.localIP());
-  Serial.flush();
+  dbgf("Connected to Wifi %s\n", NET_SSID);
 
   // allocate the first js
   
@@ -57,15 +54,12 @@ int netserver_setup() {
   // start server loop thread
   pthread_attr_init(&attr);
   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-  Serial.println("pthread create started");
   pthread_create(&server_thread, &attr, server_loop, NULL);
-  Serial.println("pthread create finished");
 }
 
 static void* server_loop(void* arg) {
   server.begin();
-  Serial.println("HTTP server up");
-  Serial.println(xPortGetCoreID());
+  dbg("HTTP server up");
 
 
   while (true) {
@@ -84,7 +78,7 @@ static void handleIndex(void) {
 
   server.send(200, "text/html", response);
 
-  Serial.println("Handled Request");
+  dbg("Handled Request");
 }
 
 static void handleUpdate(void) {
@@ -95,9 +89,9 @@ static void handleUpdate(void) {
   const char* newjs = NULL;
   size_t newsz = 0;
 
-  Serial.println("Getting update");
+  dbg("Getting update");
   if (count != 1) {
-    Serial.printf("Got strange count of %d\n", count);
+    dbgf("Got strange count of %d\n", count);
   } else {
     // swap back and forth, working on one while the other is used
     //TODO really should have some mux though
@@ -121,7 +115,7 @@ static void handleUpdate(void) {
 
     memcpy(*jsarea, newjs, newsz);
     currentjs = *jsarea;
-    Serial.printf("New js %s\n", currentjs);
+    dbgf("New js %s\n", currentjs);
   }
 
   server.send(200);
