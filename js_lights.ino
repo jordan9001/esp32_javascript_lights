@@ -1,13 +1,17 @@
 #include <Arduino.h>
-#include <pthread.h>
-#include <esp_pthread.h>
+#include <WiFi.h>
+#include <WebServer.h>
 
 #include "WS2812_ESP_RMT.h"
+#include "netserver.h"
+
+// other definitions
+#define PTHREAD_CREATE_DETACHED 0
 
 /* NOTE, these duk files are not included in the repo, see https://github.com/svaarala/duktape */
 #include "duktape.h"
 
-#define PTHREAD_CREATE_DETACHED 0
+// layout config
 #define PIN                     22  // data pin for leds
 #define NUMPIXELS               150
 
@@ -16,16 +20,15 @@ duk_context *dctx; // global javascript context
 ESPRMTLED pixels = ESPRMTLED(NUMPIXELS, PIN, RMT_CHANNEL_0);
 
 void setup() {
-  pthread_attr_t attr;
-  pthread_t server_thread;
 
   // start serial communication
   Serial.begin(9600);
-  
-  // start server thread
-  pthread_attr_init(&attr);
-  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-  pthread_create(&server_thread, &attr, server, NULL);
+
+  // start the server
+  netserver_setup();
+
+  Serial.println("Net server setup");
+  Serial.flush();
 
   // setup duktape
   dctx = duk_create_heap_default();
@@ -36,12 +39,11 @@ void setup() {
   duk_push_c_function(dctx, native_debug, DUK_VARARGS);
   duk_put_global_string(dctx, "print");
 
-  Serial.println("All Setup");
-}
+  duk_push_c_function(dctx, native_delay, DUK_VARARGS);
+  duk_put_global_string(dctx, "delay");
 
-static void* server(void* arg) {
-  Serial.println("Server starting up");
-  return NULL;
+  Serial.println("All Setup");
+  Serial.flush();
 }
 
 static duk_ret_t native_debug(duk_context* ctx) {
@@ -50,16 +52,21 @@ static duk_ret_t native_debug(duk_context* ctx) {
   return 0;
 }
 
-void loop() {
-  
-  // check for update javascript
-  //TODO
-  
-  // do loop for lights with mjs
-  //TODO
+static duk_ret_t native_delay(duk_context* ctx) {
+  uint16_t amt = duk_to_uint16(ctx, 0);
+  Serial.printf("native delay %d\n", amt);
+  delay(amt);
+  return 0;
+}
 
-  Serial.println("---");
-  duk_eval_string(dctx, "print('HELLO WORLD ' + ((42 * 31) + 35));");
-  delay(1000);
+void loop() {
+  char* js = NULL;
+  
+  // check for updated javascript
+  js = get_js();
+  
+
+  Serial.printf("Evaluating %s\n", js);
+  duk_eval_string(dctx, js);
   
 }
