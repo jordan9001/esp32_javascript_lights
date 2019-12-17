@@ -1,17 +1,25 @@
 #ifndef DBG_H
 #define DBG_H
 
-#define DEBUG 1
-#define dbgf(fmt, ...) \
-        do { if (DEBUG) { Serial.printf(fmt, __VA_ARGS__);}} while(0)
+#define _D          4
+#define _T          3
+#define _W          2
+#define _E          1
+#define _SILENT     0
 
-#define dbg(str) \
-        do { if (DEBUG) Serial.println(str);} while(0)
+#define DEBUG_LVL   0
+
+
+#define dbgf(lvl, fmt, ...) \
+        do { if (lvl <= DEBUG_LVL) { Serial.printf(fmt, __VA_ARGS__);}} while(0)
+
+#define dbg(lvl, str) \
+        do { if (lvl <= DEBUG_LVL) Serial.println(str);} while(0)
 
 #define dbg_init() \
-        do { if (DEBUG) Serial.begin(9600);} while(0)
+        do { if (DEBUG_LVL > _SILENT) Serial.begin(9600);} while(0)
 
 #define dbg_flush() \
-        do { if (DEBUG) Serial.flush();} while(0)
+        do { if (DEBUG_LVL > _SILENT) Serial.flush();} while(0)
 
 #endif

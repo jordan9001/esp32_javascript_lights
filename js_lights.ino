@@ -21,7 +21,6 @@ duk_context *dctx; // global javascript context
 ESPRMTLED pixels = ESPRMTLED(NUMPIXELS, PIN, RMT_CHANNEL_0);
 
 void setup() {
-
   pixels.clear();
 
   dbg_init();
@@ -29,12 +28,10 @@ void setup() {
   // start the server
   netserver_setup();
 
-  dbg("Net server setup");
-
   // setup duktape
   dctx = duk_create_heap_default();
   if (!dctx) {
-    dbg("Unable to start up duk!");
+    dbg(_E, "Unable to start up duk!");
   }
 
   // setup duktape environment
@@ -53,7 +50,8 @@ void setup() {
   duk_push_c_function(dctx, native_led_show, 0);
   duk_put_global_string(dctx, "showled");
 
-  dbg("All Setup");
+  dbg(_T, "All Setup");
+  dbg_flush();
 }
 
 static duk_ret_t native_led_set(duk_context* ctx) {
@@ -63,7 +61,7 @@ static duk_ret_t native_led_set(duk_context* ctx) {
   index = (uint16_t)duk_get_uint(ctx, -2);
   color = (uint32_t)duk_get_uint(ctx, -1);
 
-  dbgf("Setting %d to 0x%08x\n", index, color);
+  dbgf(_D, "Setting %d to 0x%08x\n", index, color);
 
   pixels.setPixelColor(index, color);
 
@@ -81,14 +79,15 @@ static duk_ret_t native_led_show(duk_context* ctx) {
 }
 
 static duk_ret_t native_debug(duk_context* ctx) {
-  dbg("Duk Debug : ");
-  dbg(duk_safe_to_string(ctx, 0));
+  dbg(_T, "Duk Debug : ");
+  dbg(_T, duk_safe_to_string(ctx, 0));
+  dbg_flush();
   return 0;
 }
 
 static duk_ret_t native_delay(duk_context* ctx) {
   uint16_t amt = duk_to_uint16(ctx, 0);
-  dbgf("native delay %d\n", amt);
+  dbgf(_D, "native delay %d\n", amt);
   delay(amt);
   return 0;
 }
@@ -99,5 +98,10 @@ void loop() {
   // check for updated javascript
   js = get_js();
 
-  duk_eval_string(dctx, js);
+  if (duk_peval_string_noresult(dctx, js) != 0) {
+    // javascript error
+    dbg(_W, "js error");
+    dbg_flush();
+    delay(1000);
+  }
 }

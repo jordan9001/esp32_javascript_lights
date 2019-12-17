@@ -7,6 +7,10 @@
 #include <WebServer.h>
 #include <WiFi.h>
 
+#ifndef LED_BUILTIN
+#define LED_BUILTIN 2
+#endif
+
 // Globals
 WebServer server(NET_PORT);
 char* js1 = NULL;
@@ -14,6 +18,7 @@ size_t js1_len = 0;
 char* js2 = NULL;
 size_t js2_len = 0;
 char* currentjs = "delay(1500);";
+char ledstate = 1;
 
 // static helpers
 static void* server_loop(void* arg);
@@ -29,20 +34,24 @@ int netserver_setup() {
   int i = 0;
   pthread_attr_t attr;
   pthread_t server_thread;
+
+  pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, HIGH);
+  ledstate = 1;
   
-  dbg("Server starting up");
+  dbg(_T, "Server starting up");
   // Start Wifi
   
   WiFi.config(ip, gateway, subnet, dns1, dns2);
   
   while (WiFi.begin(NET_SSID, NET_PASS) != WL_CONNECTED) {
-    dbgf("Connecting to Wifi %s %d...\n", NET_SSID, i);
+    dbgf(_T, "Connecting to Wifi %s %d...\n", NET_SSID, i);
     Serial.flush();
     delay(1000);
     i++;
   }
 
-  dbgf("Connected to Wifi %s\n", NET_SSID);
+  dbgf(_T, "Connected to Wifi %s\n", NET_SSID);
 
   // allocate the first js
   
@@ -59,12 +68,13 @@ int netserver_setup() {
 
 static void* server_loop(void* arg) {
   server.begin();
-  dbg("HTTP server up");
+  dbg(_T, "HTTP server up");
 
 
   while (true) {
     // need to give up cpu time to other loop
     server.handleClient();
+    
     delay(100);
   }
   
@@ -78,7 +88,10 @@ static void handleIndex(void) {
 
   server.send(200, "text/html", response);
 
-  dbg("Handled Request");
+  dbg(_D, "Handled Request");
+
+  ledstate = !ledstate;
+  digitalWrite(LED_BUILTIN, (ledstate) ? HIGH : LOW);
 }
 
 static void handleUpdate(void) {
@@ -89,9 +102,9 @@ static void handleUpdate(void) {
   const char* newjs = NULL;
   size_t newsz = 0;
 
-  dbg("Getting update");
+  dbg(_D, "Getting update");
   if (count != 1) {
-    dbgf("Got strange count of %d\n", count);
+    dbgf(_W, "Got strange count of %d\n", count);
   } else {
     // swap back and forth, working on one while the other is used
     //TODO really should have some mux though
@@ -115,8 +128,10 @@ static void handleUpdate(void) {
 
     memcpy(*jsarea, newjs, newsz);
     currentjs = *jsarea;
-    dbgf("New js %s\n", currentjs);
+    dbgf(_D, "New js %s\n", currentjs);
   }
 
   server.send(200);
+  ledstate = !ledstate;
+  digitalWrite(LED_BUILTIN, (ledstate) ? HIGH : LOW);
 }
