@@ -99,6 +99,17 @@ void loop() {
   js = get_js();
 
   if (duk_peval_string_noresult(dctx, js) != 0) {
+    // TODO:
+    // still having restarts
+    // To track it down I should:
+    //   Don't do heap_create_default, so I can register a fatal error handler, and get more information
+    //   try the not noresult version, and view the error
+    //   should I be using the duk_to_uin16? Or should that be a duk_get?
+    //   Inspect the ctx every loop, is the stack growing? use duk_check_stack, duk_get_top, 
+    //   do duk_gc?
+    // Also, I should:
+    //   don't eval every loop, do a compile once, then call
+    
     // javascript error
     dbg(_W, "js error");
     dbg_flush();
