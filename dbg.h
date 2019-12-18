@@ -7,7 +7,7 @@
 #define _E          1
 #define _SILENT     0
 
-#define DEBUG_LVL   0
+#define DEBUG_LVL   4
 
 
 #define dbgf(lvl, fmt, ...) \

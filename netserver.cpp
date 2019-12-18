@@ -52,6 +52,7 @@ int netserver_setup() {
   }
 
   dbgf(_T, "Connected to Wifi %s\n", NET_SSID);
+  dbg(_T, WiFi.localIP());
 
   // allocate the first js
   
@@ -118,11 +119,15 @@ static void handleUpdate(void) {
   
     newjs = server.arg(i).c_str();
     newsz = strlen(newjs)+1;
+    dbgf(_W, "newsz %x\n", newsz);
+    dbg_flush();
     
     if (newsz > *jssz) {
       // allocate area
       *jssz = newsz;
-      free(*jsarea);
+      if (*jsarea != 0) {
+        free(*jsarea);
+      }
       *jsarea = (char*)malloc(newsz);
     }
 
